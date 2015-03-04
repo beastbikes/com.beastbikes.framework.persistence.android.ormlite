@@ -3,23 +3,31 @@ package com.beastbikes.framework.persistence.android.ormlite;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+
+import android.text.TextUtils;
 
 import com.beastbikes.framework.persistence.DataAccessObject;
 import com.beastbikes.framework.persistence.PersistenceException;
 import com.beastbikes.framework.persistence.PersistenceManager;
 import com.beastbikes.framework.persistence.PersistentObject;
 import com.j256.ormlite.dao.BaseDaoImpl;
+import com.j256.ormlite.dao.CloseableIterator;
+import com.j256.ormlite.dao.GenericRawResults;
 import com.j256.ormlite.dao.RawRowMapper;
 import com.j256.ormlite.field.FieldType;
+import com.j256.ormlite.misc.TransactionManager;
 import com.j256.ormlite.table.TableInfo;
 
 public class ORMLiteAccessObject<T extends PersistentObject> implements
 		DataAccessObject<T>, RawRowMapper<T> {
 
-	private final PersistenceManager persistenceManager;
+	private final ORMLitePersistenceSupport support;
 
 	private final BaseDaoImpl<T, Serializable> dao;
 
@@ -27,7 +35,7 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 
 	@SuppressWarnings("unchecked")
 	public ORMLiteAccessObject(ORMLitePersistenceSupport support, Class<T> clazz) {
-		this.persistenceManager = support;
+		this.support = support;
 
 		try {
 			this.dao = (BaseDaoImpl<T, Serializable>) support.getDao(clazz);
@@ -40,13 +48,35 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 
 	@Override
 	public PersistenceManager getPersistenceManager() {
-		return this.persistenceManager;
+		return this.support;
 	}
 
 	@Override
 	public long count() throws PersistenceException {
 		try {
 			return this.dao.countOf();
+		} catch (SQLException e) {
+			throw new PersistenceException(e);
+		}
+	}
+
+	@Override
+	public long count(String clauses, String... args)
+			throws PersistenceException {
+		final String sql = new StringBuilder("SELECT COUNT(*) FROM ")
+				.append(this.tableInfo.getTableName()).append(" WHERE ")
+				.append(clauses).toString();
+		try {
+			final GenericRawResults<String[]> results = this.dao.queryRaw(sql,
+					args);
+			if (null == results)
+				return 0;
+
+			try {
+				return Long.parseLong(results.getFirstResult()[0]);
+			} finally {
+				results.close();
+			}
 		} catch (SQLException e) {
 			throw new PersistenceException(e);
 		}
@@ -71,36 +101,66 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 	}
 
 	@Override
-	public void insert(T po) throws PersistenceException {
-		try {
-			this.dao.create(po);
-		} catch (SQLException e) {
-			throw new PersistenceException(e);
-		}
+	public void insert(final T... pos) throws PersistenceException {
+		if (null == pos || pos.length < 0)
+			return;
+
+		this.execute(new Callable<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				for (final T t : pos) {
+					ORMLiteAccessObject.this.dao.create(t);
+				}
+
+				return null;
+			}
+
+		});
 	}
 
 	@Override
-	public void update(T po) throws PersistenceException {
-		try {
-			this.dao.update(po);
-		} catch (SQLException e) {
-			throw new PersistenceException(e);
-		}
+	public void update(final T... pos) throws PersistenceException {
+		if (null == pos || pos.length < 0)
+			return;
+
+		this.execute(new Callable<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				for (final T t : pos) {
+					ORMLiteAccessObject.this.dao.update(t);
+				}
+
+				return null;
+			}
+
+		});
 	}
 
 	@Override
-	public void delete(T po) throws PersistenceException {
-		try {
-			this.dao.delete(po);
-		} catch (SQLException e) {
-			throw new PersistenceException(e);
-		}
+	public void delete(final T... pos) throws PersistenceException {
+		if (null == pos || pos.length < 0)
+			return;
+
+		this.execute(new Callable<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				for (final T t : pos) {
+					ORMLiteAccessObject.this.dao.delete(t);
+				}
+
+				return null;
+			}
+
+		});
 	}
 
 	@Override
-	public void delete(Serializable id) throws PersistenceException {
+	public void delete(Serializable... ids) throws PersistenceException {
 		try {
-			this.dao.deleteById(id);
+			this.dao.deleteIds(Arrays.asList(ids));
 		} catch (SQLException e) {
 			throw new PersistenceException(e);
 		}
@@ -125,15 +185,9 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 	}
 
 	@Override
-	public void execute(String sql, Object... args) throws PersistenceException {
-		final String[] params = new String[args.length];
-
-		for (int i = 0; i < args.length; i++) {
-			params[i] = (null == args[i] ? null : String.valueOf(args[i]));
-		}
-
+	public void execute(String sql, String... args) throws PersistenceException {
 		try {
-			this.dao.executeRaw(sql, params);
+			this.dao.executeRaw(sql, args);
 		} catch (SQLException e) {
 			throw new PersistenceException(e);
 		}
@@ -167,6 +221,53 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 		}
 
 		return t;
+	}
+
+	@Override
+	public <V> V execute(final Callable<V> transaction)
+			throws PersistenceException {
+		try {
+			return TransactionManager.callInTransaction(
+					this.support.getConnectionSource(), transaction);
+		} catch (SQLException e) {
+			throw new PersistenceException(e);
+		}
+	}
+
+	public List<T> query(String clauses, String... args)
+			throws PersistenceException {
+		final StringBuilder sql = new StringBuilder("SELECT * FROM ");
+
+		sql.append(this.tableInfo.getTableName());
+
+		if (!TextUtils.isEmpty(clauses)) {
+			if (!clauses.startsWith(" ")) {
+				sql.append(" ");
+			}
+			sql.append(clauses);
+		}
+
+		try {
+			final GenericRawResults<T> results = this.dao.queryRaw(
+					sql.toString(), this, args);
+			if (results == null)
+				return null;
+
+			final List<T> list = new ArrayList<T>();
+			final CloseableIterator<T> i = results.closeableIterator();
+
+			try {
+				while (i.hasNext()) {
+					list.add(i.nextThrow());
+				}
+			} finally {
+				i.close();
+			}
+
+			return list;
+		} catch (SQLException e) {
+			throw new PersistenceException(e);
+		}
 	}
 
 }
