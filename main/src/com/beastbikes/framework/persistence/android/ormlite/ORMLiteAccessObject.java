@@ -120,6 +120,25 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 	}
 
 	@Override
+	public void insert(final List<T> pos) throws PersistenceException {
+		if (null == pos || pos.isEmpty())
+			return;
+
+		this.execute(new Callable<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				for (final T t : pos) {
+					ORMLiteAccessObject.this.dao.create(t);
+				}
+
+				return null;
+			}
+
+		});
+	}
+
+	@Override
 	public void update(final T... pos) throws PersistenceException {
 		if (null == pos || pos.length < 0)
 			return;
@@ -139,8 +158,46 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 	}
 
 	@Override
+	public void update(final List<T> pos) throws PersistenceException {
+		if (null == pos || pos.isEmpty())
+			return;
+
+		this.execute(new Callable<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				for (final T t : pos) {
+					ORMLiteAccessObject.this.dao.update(t);
+				}
+
+				return null;
+			}
+
+		});
+	}
+
+	@Override
 	public void delete(final T... pos) throws PersistenceException {
 		if (null == pos || pos.length < 0)
+			return;
+
+		this.execute(new Callable<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				for (final T t : pos) {
+					ORMLiteAccessObject.this.dao.delete(t);
+				}
+
+				return null;
+			}
+
+		});
+	}
+
+	@Override
+	public void delete(final List<T> pos) throws PersistenceException {
+		if (null == pos || pos.isEmpty())
 			return;
 
 		this.execute(new Callable<Void>() {
