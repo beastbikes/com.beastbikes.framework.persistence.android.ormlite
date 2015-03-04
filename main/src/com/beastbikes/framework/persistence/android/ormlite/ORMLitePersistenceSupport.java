@@ -2,11 +2,14 @@ package com.beastbikes.framework.persistence.android.ormlite;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDatabase.CursorFactory;
 
+import com.beastbikes.framework.persistence.PersistentObject;
 import com.beastbikes.framework.persistence.android.SQLiteUpgradeHandler;
 import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
 import com.j256.ormlite.support.ConnectionSource;
@@ -19,6 +22,8 @@ import com.j256.ormlite.support.ConnectionSource;
  */
 public abstract class ORMLitePersistenceSupport extends OrmLiteSqliteOpenHelper
 		implements Comparator<SQLiteUpgradeHandler>, ORMLitePersistenceManager {
+
+	private static final Map<Class<? extends PersistentObject>, ORMLiteAccessObject<? extends PersistentObject>> caches = new HashMap<Class<? extends PersistentObject>, ORMLiteAccessObject<? extends PersistentObject>>();
 
 	public ORMLitePersistenceSupport(Context context, String name,
 			CursorFactory factory, int version) {
@@ -52,6 +57,23 @@ public abstract class ORMLitePersistenceSupport extends OrmLiteSqliteOpenHelper
 				handler.upgrade(this, oldVersion, newVersion);
 			}
 		}
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public <T extends PersistentObject> ORMLiteAccessObject<T> getDataAccessObject(
+			Class<T> clazz) {
+		ORMLiteAccessObject<T> dao = (ORMLiteAccessObject<T>) caches.get(clazz);
+
+		if (null == dao) {
+			dao = new ORMLiteAccessObject<T>(this, clazz);
+
+			synchronized (caches) {
+				caches.put(clazz, dao);
+			}
+		}
+
+		return dao;
 	}
 
 }

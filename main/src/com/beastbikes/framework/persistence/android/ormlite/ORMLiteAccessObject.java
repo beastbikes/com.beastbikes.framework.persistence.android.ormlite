@@ -2,7 +2,6 @@ package com.beastbikes.framework.persistence.android.ormlite;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
@@ -108,9 +107,21 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 	}
 
 	@Override
-	public ResultSet query(String sql, String... args)
-			throws PersistenceException {
-		return null;
+	public boolean exists(T po) throws PersistenceException {
+		try {
+			return this.dao.idExists(po.getId());
+		} catch (SQLException e) {
+			throw new PersistenceException(e);
+		}
+	}
+
+	@Override
+	public boolean exists(Serializable id) throws PersistenceException {
+		try {
+			return this.dao.idExists(id);
+		} catch (SQLException e) {
+			throw new PersistenceException(e);
+		}
 	}
 
 	@Override
