@@ -101,7 +101,7 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 	}
 
 	@Override
-	public void insert(final T... pos) throws PersistenceException {
+	public void create(final T... pos) throws PersistenceException {
 		if (null == pos || pos.length < 0)
 			return;
 
@@ -120,7 +120,7 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 	}
 
 	@Override
-	public void insert(final List<T> pos) throws PersistenceException {
+	public void create(final List<T> pos) throws PersistenceException {
 		if (null == pos || pos.isEmpty())
 			return;
 
@@ -168,6 +168,44 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 			public Void call() throws Exception {
 				for (final T t : pos) {
 					ORMLiteAccessObject.this.dao.update(t);
+				}
+
+				return null;
+			}
+
+		});
+	}
+
+	@Override
+	public void createOrUpdate(final T... pos) throws PersistenceException {
+		if (null == pos || pos.length < 0)
+			return;
+
+		this.execute(new Callable<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				for (final T t : pos) {
+					ORMLiteAccessObject.this.dao.createOrUpdate(t);
+				}
+
+				return null;
+			}
+
+		});
+	}
+
+	@Override
+	public void createOrUpdate(final List<T> pos) throws PersistenceException {
+		if (null == pos || pos.isEmpty())
+			return;
+
+		this.execute(new Callable<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				for (final T t : pos) {
+					ORMLiteAccessObject.this.dao.createOrUpdate(t);
 				}
 
 				return null;
