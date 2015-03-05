@@ -1,6 +1,5 @@
 package com.beastbikes.framework.persistence.android.ormlite;
 
-import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -29,17 +28,17 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 
 	private final ORMLitePersistenceSupport support;
 
-	private final BaseDaoImpl<T, Serializable> dao;
+	private final BaseDaoImpl<T, String> dao;
 
-	private final TableInfo<T, Serializable> tableInfo;
+	private final TableInfo<T, String> tableInfo;
 
 	@SuppressWarnings("unchecked")
 	public ORMLiteAccessObject(ORMLitePersistenceSupport support, Class<T> clazz) {
 		this.support = support;
 
 		try {
-			this.dao = (BaseDaoImpl<T, Serializable>) support.getDao(clazz);
-			this.tableInfo = new TableInfo<T, Serializable>(
+			this.dao = (BaseDaoImpl<T, String>) support.getDao(clazz);
+			this.tableInfo = new TableInfo<T, String>(
 					support.getConnectionSource(), this.dao, clazz);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
@@ -83,7 +82,7 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 	}
 
 	@Override
-	public T get(Serializable id) throws PersistenceException {
+	public T get(String id) throws PersistenceException {
 		try {
 			return this.dao.queryForId(id);
 		} catch (SQLException e) {
@@ -253,7 +252,7 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 	}
 
 	@Override
-	public void delete(Serializable... ids) throws PersistenceException {
+	public void delete(String... ids) throws PersistenceException {
 		try {
 			this.dao.deleteIds(Arrays.asList(ids));
 		} catch (SQLException e) {
@@ -271,7 +270,7 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 	}
 
 	@Override
-	public boolean exists(Serializable id) throws PersistenceException {
+	public boolean exists(String id) throws PersistenceException {
 		try {
 			return this.dao.idExists(id);
 		} catch (SQLException e) {
