@@ -10,7 +10,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDatabase.CursorFactory;
 
 import com.beastbikes.framework.persistence.PersistentObject;
-import com.beastbikes.framework.persistence.android.SQLiteUpgradeHandler;
 import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
 import com.j256.ormlite.support.ConnectionSource;
 
@@ -21,7 +20,7 @@ import com.j256.ormlite.support.ConnectionSource;
  * 
  */
 public abstract class ORMLitePersistenceSupport extends OrmLiteSqliteOpenHelper
-		implements Comparator<SQLiteUpgradeHandler>, ORMLitePersistenceManager {
+		implements Comparator<ORMLiteUpgradeHandler>, ORMLitePersistenceManager {
 
 	private static final Map<Class<? extends PersistentObject>, ORMLiteAccessObject<? extends PersistentObject>> caches = new HashMap<Class<? extends PersistentObject>, ORMLiteAccessObject<? extends PersistentObject>>();
 
@@ -31,30 +30,30 @@ public abstract class ORMLitePersistenceSupport extends OrmLiteSqliteOpenHelper
 	}
 
 	@Override
-	public SQLiteUpgradeHandler[] getUpgradeHandlers() {
-		return new SQLiteUpgradeHandler[0];
+	public ORMLiteUpgradeHandler[] getUpgradeHandlers() {
+		return new ORMLiteUpgradeHandler[0];
 	}
 
 	@Override
-	public int compare(SQLiteUpgradeHandler lhs, SQLiteUpgradeHandler rhs) {
+	public int compare(ORMLiteUpgradeHandler lhs, ORMLiteUpgradeHandler rhs) {
 		return lhs.compareTo(rhs);
 	}
 
 	@Override
 	public void onUpgrade(SQLiteDatabase db, ConnectionSource cs,
 			int oldVersion, int newVersion) {
-		final SQLiteUpgradeHandler[] handlers = getUpgradeHandlers();
+		final ORMLiteUpgradeHandler[] handlers = getUpgradeHandlers();
 		if (null == handlers || handlers.length <= 0)
 			return;
 
 		Arrays.sort(handlers, this);
 
 		for (int i = 0; i < handlers.length; i++) {
-			final SQLiteUpgradeHandler handler = handlers[i];
+			final ORMLiteUpgradeHandler handler = handlers[i];
 			final int targetVersion = handler.getTargetVersion();
 
 			if (oldVersion < targetVersion) {
-				handler.upgrade(this, oldVersion, newVersion);
+				handler.upgrade(db, cs, oldVersion, newVersion);
 			}
 		}
 	}
