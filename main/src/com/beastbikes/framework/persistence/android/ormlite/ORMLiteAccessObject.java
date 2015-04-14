@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import android.text.TextUtils;
 
 import com.beastbikes.framework.persistence.DataAccessObject;
@@ -25,6 +28,8 @@ import com.j256.ormlite.table.TableInfo;
 
 public class ORMLiteAccessObject<T extends PersistentObject> implements
 		DataAccessObject<T>, RawRowMapper<T> {
+
+	private static final Logger logger = LoggerFactory.getLogger("ORMLiteAccessObject");
 
 	private final ORMLitePersistenceSupport support;
 
@@ -109,6 +114,7 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 			@Override
 			public Void call() throws Exception {
 				for (final T t : pos) {
+					logger.trace("Creating object: " + String.valueOf(t));
 					ORMLiteAccessObject.this.dao.create(t);
 				}
 
@@ -128,6 +134,7 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 			@Override
 			public Void call() throws Exception {
 				for (final T t : pos) {
+					logger.trace("Creating " + String.valueOf(t));
 					ORMLiteAccessObject.this.dao.create(t);
 				}
 
@@ -147,6 +154,7 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 			@Override
 			public Void call() throws Exception {
 				for (final T t : pos) {
+					logger.trace("Updating " + String.valueOf(t));
 					ORMLiteAccessObject.this.dao.update(t);
 				}
 
@@ -166,6 +174,7 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 			@Override
 			public Void call() throws Exception {
 				for (final T t : pos) {
+					logger.trace("Updating " + String.valueOf(t));
 					ORMLiteAccessObject.this.dao.update(t);
 				}
 
@@ -185,6 +194,7 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 			@Override
 			public Void call() throws Exception {
 				for (final T t : pos) {
+					logger.trace("Creating/Updating " + String.valueOf(t));
 					ORMLiteAccessObject.this.dao.createOrUpdate(t);
 				}
 
@@ -204,6 +214,7 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 			@Override
 			public Void call() throws Exception {
 				for (final T t : pos) {
+					logger.trace("Creating/Updating " + String.valueOf(t));
 					ORMLiteAccessObject.this.dao.createOrUpdate(t);
 				}
 
@@ -223,6 +234,7 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 			@Override
 			public Void call() throws Exception {
 				for (final T t : pos) {
+					logger.trace("Deleting " + String.valueOf(t));
 					ORMLiteAccessObject.this.dao.delete(t);
 				}
 
@@ -242,6 +254,7 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 			@Override
 			public Void call() throws Exception {
 				for (final T t : pos) {
+					logger.trace("Deleting " + String.valueOf(t));
 					ORMLiteAccessObject.this.dao.delete(t);
 				}
 
@@ -253,6 +266,8 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 
 	@Override
 	public void delete(String... ids) throws PersistenceException {
+		logger.trace("Deleting " + Arrays.toString(ids));
+
 		try {
 			this.dao.deleteIds(Arrays.asList(ids));
 		} catch (SQLException e) {
@@ -280,6 +295,8 @@ public class ORMLiteAccessObject<T extends PersistentObject> implements
 
 	@Override
 	public void execute(String sql, String... args) throws PersistenceException {
+		logger.trace("Executing " + sql + " : " + Arrays.toString(args));
+
 		try {
 			this.dao.executeRaw(sql, args);
 		} catch (SQLException e) {
